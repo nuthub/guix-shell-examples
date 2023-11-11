@@ -1,0 +1,284 @@
+#+title: GUIX Shell examples
+#+OPTIONS: toc:t
+
+Running a [[https://guix.gnu.org/][GNU Guix]] system as main operating system generally works for me. However, I have the requirement to run some software that is not available in Guix. Although it's generally possible (but not the Guix-way) to create packages from proprietary software, where source code is unavailable, creating a Guix package is not trivial or not feasible in some cases.
+
+* Java on Guix
+:PROPERTIES:
+#+PROPERTY: header-args:shell :results output verbatim :exports both :tangle no :eval never-export
+:END:
+
+I had some problems when I tried to build or run Java programs on my [[https://guix.gnu.org/][GNU Guix]] system. As with other OSs and Linuxes, Java frequently needs some special attention, since there are Java programs that rely on specific Java versions. Although backwards compatibility is possible in general, there are cases where an application refuses (sometimes by intention) to run on an outdated or a too new Java version. Therefore, it frequently becomes necessary to switch between different Java versions in order to run different programs.
+This is where the beauty of guix shell comes into play. We don't switch between different installed Java versions, but we define the individual environment, in which a Java program feels comfortable. The downside is, that we have to figure out, how the environment should look like for each program. The results of my attempts to define specific environments are documented here. I'm aware that maybe I am the only person in the world trying to run some of the examples on a GNU Guix system. However, the examples may serve to let others understand which tweaks can be helpful.
+
+** Java versions in GNU Guix
+
+In GNU Guix there is a broad range of versions of Open Source Java implementations, namely JDKs (Java Development Kits) and their respective JREs (Java Runtime Environments) available.
+
+Versions (9+) of OpenJDK are available via package ~openjdk~. As of [2023-11-11 Sat], these are:
+
+#+BEGIN_SRC shell :exports both
+  guix show openjdk | grep version
+#+END_SRC
+
+#+RESULTS:
+| version: |      21 |
+| version: |      20 |
+| version: |  19.0.2 |
+| version: |  18.0.2 |
+| version: |  17.0.5 |
+| version: |  16.0.2 |
+| version: |  15.0.9 |
+| version: |  14.0.2 |
+| version: | 13.0.13 |
+| version: |   12.33 |
+| version: | 11.0.17 |
+| version: |   10.46 |
+| version: |   9.181 |
+
+The available ~icedtea~ packages are:
+
+#+BEGIN_SRC shell :exports both
+  guix show icedtea | grep version
+#+END_SRC
+
+#+RESULTS:
+| version: | 3.19.0 |
+| version: | 2.6.13 |
+
+Java 1.8 is provided by the package ~icedtea~ version 3.19.0:
+
+  #+BEGIN_SRC shell :prologue "exec 2>&1" :epilogue ":" :exports both
+    guix shell icedtea@3.19.0 -- java -version
+  #+END_SRC
+
+  #+RESULTS:
+  : openjdk version "1.8.0_292"
+  : OpenJDK Runtime Environment (IcedTea 3.19.0) (guix build 1.8.0_292-b10)
+  : OpenJDK 64-Bit Server VM (build 25.292-b10, mixed mode)
+
+Java 1.7 is provided in the package ~icedtea~ version 2.6.13:
+
+  #+BEGIN_SRC shell :prologue "exec 2>&1" :epilogue ":" :exports both 
+    guix shell icedtea@2.6.13 -- java -version
+  #+END_SRC 
+
+  #+RESULTS:
+  : java version "1.7.0_171"
+  : OpenJDK Runtime Environment (IcedTea 2.6.13) (linux-gnu build 1.7.0_171-b02)
+  : OpenJDK 64-Bit Server VM (build 24.171-b02, mixed mode)
+
+
+Unfortunately, in most cases it is not sufficient to just install a recent version of OpenJDK. Furthermore this does not allow for different versions to exist in parallel. A simple guix shell with the appropriate package added, does also not suffice, as the following examples demonstrate. Especially with desktop programs additional tweaks are required.
+
+** DONE Building Java Programs
+
+Maven version in GNU Guix is 3.8.6. (Some) Tested projects require Java 17. Guix's ~maven@3.8.6~ does not like (aka run with) Guix's ~openjdk@17.0.5~. Therefore, I downloaded a recent Maven version from Maven's homepage, extracted it and added the binary to my ~$PATH~. I added ~--preserve='^PATH$~ and the package ~openjdk@17.0.5:jdk~ to a container shell and was then able to use that downloaded Maven version inside the container. So far so good.
+I wasn't really happy with that, therefore I decided to add a [[https://maven.apache.org/wrapper/][Maven Wrapper]] to the project, I needed a recent Maven version for. I used the maven container shell created as described above, but you can do this even without having Maven installed at all. So I don't use my downloaded Maven version anymore.
+It's probably generally a good idea to add wrapper scripts to your projects' sources like ~mvnw~ or ~gradlew~. These scripts fetch from the internet some defined version of Maven and Gradle respectively and you don't need to install these build systems locally in you operating system. That way the source defines, the build environment (e.g. the version of maven to use). However, this is not the Guix way, since you never know for sure the contents of the blobs, these wrapper download from the internet. On the other side, these build systems are designed to load the dependencies of the projects as binary blobs from internet like [[https://mvnrepository.com/]] anyways. So you never really know for sure, what you are downloading and running with the integration tests the build systems run.
+
+*** Building CARiSMA with Maven
+
+- CARiSMA (https://github.com/CARiSMA-Tool/carisma-tool) requires Java 17+ [2023-11-10 Fri]
+- CARiSMA (now) includes a Maven wrapper script, therefore local installation of a specific Maven version became unnecessary.
+- The Maven wrapper script ~mvnw~ complains about ~JAVA_HOME~, if not set.
+- Build succeeds with the following shell:
+
+#+begin_src shell
+
+  export JAVA_HOME=$(guix build openjdk@17.0.5 | grep "\-jdk$")
+  cd ~/git/carisma-tool
+  guix shell openjdk@17.0.5:jdk -- ./mvnw clean verify
+
+#+end_src
+
+*** Building CAMUNDA BPM with Maven
+
+- Tested with 7.20.0 from git [2023-11-10 Fri]
+- Camunda BPM 7.20.0 requires Java version 11 or 17 [https://docs.camunda.org/manual/7.20/introduction/supported-environments/#java-runtime]
+- Camunda needs ~libstdc++~, which is made available to a container shell via ~-e '(list (@@ (gnu packages commencement) gcc) "lib")'~.
+  - According to podiki in IRC chat, this is a temporary workaround (https://logs.guix.gnu.org/guix/2023-11-09.log) to add the previous ~lib~ output of ~gcc~ package, which is in transition to a new package ~gcc-toolchain~.
+- Maven wrapper likes to use ~which~, therefore it's added to the container. Additionally the Maven Wrapper warns about ~JAVA_HOME~ not being set, therefore just set it like in the following example.
+- Camunda needs ~bash~ executable to build, therefore it's added to the container.
+- The maven wrapper script does run without FHS, but Camunda BPM tries to start a node.js server which seems to not work without FHS.
+- Camunda BPM 7.20.0 builds (tests skipped) with Maven using the following shell: [2023-11-10 Fri]:
+  
+#+begin_src shell
+
+  export JAVA_HOME=$(guix build openjdk@17.0.5 | grep "\-jdk$")
+  cd ~/git/camunda-bpm-platform
+  guix shell \
+       --container --emulate-fhs --network \
+       --preserve='^JAVA_HOME$' \
+       -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
+       coreutils openjdk@17.0.5:jdk which bash \
+       -- ./mvnw clean package -DskipTests
+
+#+end_src
+
+*** Building EDC with Gradle
+- Clone the [[https://github.com/eclipse-edc/Connector][Eclipse Dataspace Connector]] : ~git clone git@github.com:eclipse-edc/Connector.git~
+- EDC needs Java 17+ (https://github.com/eclipse-edc/docs/blob/main/developer/handbook.md)
+- EDC contains a Gradle Wrapper Script, so no local Gradle installation is required.
+- EDC needs ~xargs~, which is shipped with package findutils
+- Gradle throws an error, if ~sed~ is not available
+
+#+begin_src shell
+
+  export JAVA_HOME=$(guix build openjdk@17.0.5 | grep "\-jdk$")
+  cd ~/git/Connector
+  guix shell \
+       --container --emulate-fhs --network \
+       --preserve='^JAVA_HOME$' \
+       coreutils openjdk@17.0.5:jdk findutils sed \
+       -- ./gradlew clean build
+
+#+end_src
+
+** Running Java Programs
+*** TODO JabRef
+
+[[https://www.jabref.org/][JabRef]] is also available as flatpak, but I preferred to create a guix shell for it. So I downloaded and extracted a recent version. This is the file I wanted to run:
+
+#+BEGIN_SRC shell
+  ls -l ~/Applications/JabRef-5.11/bin/JabRef
+  file ~/Applications/JabRef-5.11/bin/JabRef
+#+END_SRC
+
+#+RESULTS:
+: -rwxr-xr-x 1 flake users 18568 Oct 22 01:05 /home/flake/Applications/JabRef-5.11/bin/JabRef
+: /home/flake/Applications/JabRef-5.11/bin/JabRef: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.18, BuildID[sha1]=6d790541a31635bd38177b4f4d70bcdf422eb827, not stripped
+
+But this does not work as expected:
+
+#+BEGIN_SRC shell :prologue "exec 2>&1" :epilogue ":" 
+  guix shell openjdk@17.0.5 -- ~/Applications/JabRef-5.11/bin/JabRef
+#+END_SRC
+
+#+RESULTS:
+: guix shell: error: /home/flake/Applications/JabRef-5.11/bin/JabRef: command not found
+
+Running in a container that complies with the File Hierarchy System (FHS) solves the issue for me. However the container needs additional information and programs to smoothly run JabRef.
+
+- Without ~xdg-user-dirs~, JabRef complains:
+  #+BEGIN_SRC
+    ERROR: Error while executing xdg-user-dir: java.io.IOException: Cannot run program "xdg-user-dir": error=2, No such file or directory
+  #+END_SRC
+  So I added ~xdg-user-dirs~ to the container and preserved ~XDG_~ environment variables.
+- To open links in an external program, JabRef uses ~xdg-open~. Therefore I added ~xdg-utils~.
+- I added ~ungoogled-chromium~ to allow JabRef to open internet URLs. Since I am on wayland, I configured my own chromium profile to use wayland. JabRef itself runs as X11 application in XWayland. That's why I had to add both environments (Wayland and X) to the container.
+
+
+#+BEGIN_SRC shell
+ 
+  guix shell \
+       --container --emulate-fhs --network \
+       --preserve='^DBUS_' --expose=/var/run/dbus \
+       --preserve='^XDG_' \
+       --preserve='WAYLAND_DISPLAY' --expose=/run/user \
+       --preserve='^DISPLAY$' --expose=/dev/dri --expose=/sys/dev --expose=/sys/devices \
+       --share=$HOME \
+       coreutils gtk+ openjdk@17.0.5 xdg-utils xdg-user-dirs ungoogled-chromium \
+       -- ~/Applications/JabRef-5.11/bin/JabRef
+
+#+END_SRC
+
+**** Remaining issue
+
+When I want to open a URL from within JabRef, a new chromium window is opened instead of opening a new tab in an already running chromium instance.
+
+*If you have any solution for these, please let me know.*
+
+
+*** TODO Eclipse
+
+Eclipse is also available as flatpak, but I prefer to use a Guix Shell.
+
+- Eclipse ships its own JDK. Therefore, a local JDK installation is not necessary for running Eclipse.
+- On a normal GNU Guix system that does not comply to File Hierarchy Standard (FHS), running the binary ~eclipse~ gives a "command not found". One way to solve this is to run a container shell with ~--emulate-fhs~ parameter.
+- Eclipse complains about missing ~libz.so.1~, therefore, I added ~zlib~ to the shell container.
+- Eclipse complains about missing ~swt-pi3~. This is solved by adding package ~gtk+~.
+- Eclipse needs ~$DISPLAY~ for X11/XWayland or ~$XDG_~ and ~$WAYLAND_DISPLAY~ for Wayland.
+- Eclipse complains "Cannot spawn a message bus without a machine-id: Unable to load /gnu/store/...-glib-2.72.3/var/lib/dbus/machine-id or /etc/machine-id:". This is solved by preserving ~$DBUS_~ environment variables
+- Eclipse can't connect to accessibility bus (because I don't have ~/run/user/1000/at-spi/bus_0~). This is solved by setting ~NO_AT_BRIDGE=1~
+- Eclipse needs WebKit bindings as integrated web browser. This is solved by adding ~webkitgtk~. Still, Online Help isn't available, it results in a window with the message "WebKit encountered a problem".
+- During work with Eclipse, some auto completion feature did not work. Instead I got the message ".../.node/node-v18.17.1-linux-x64/bin/node: error while loading shared libraries: libstdc++.so.6: cannot open shared object file: No such file or directory".
+  As of [2023-11-09 Thu] a workaround is necessary to add ~libstdc++~ to the shell: The output ~lib~ of ~gcc~ is not available anymore (due to an ongoing transition of package ~gcc~ to ~gcc-toolchain~). One can still add the relevant output via ~-e '(list (@@ (gnu packages commencement) gcc) "lib")'~. (According to podiki in IRC chat, this is a temporary workaround (https://logs.guix.gnu.org/guix/2023-11-09.log). Otherwise adding ~gcc-toolchain:lib~ to the packages could be sufficient.)
+
+**** Eclipse in X11 / XWayland
+
+#+begin_src shell
+
+  export NO_AT_BRIDGE=1
+  
+  guix shell \
+       --container --emulate-fhs --network \
+       --share=$HOME \
+       --preserve='^DISPLAY$' \
+       --preserve='^DBUS_|^NO_AT_BRIDGE$' \
+       --expose=/dev \
+       -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
+       coreutils zlib gtk+ webkitgtk \
+       -- ~/Applications/eclipse/eclipse-jee-2023-09/eclipse
+
+#+end_src
+
+**** Eclipse natively on Wayland
+
+It is assumed, that ~DBUS_SESSION_BUS_ADDRESS~, ~XDG_RUNTIME_DIR~ and ~WAYLAND_DISPLAY~ are set correctly after launching your compositor.
+
+#+begin_src shell
+
+  export NO_AT_BRIDGE=1
+
+  guix shell \
+       --container --emulate-fhs --network \
+       --share=$HOME \
+       --preserve='^WAYLAND_DISPLAY$|^XDG_RUNTIME_DIR$' \
+       --preserve='^DBUS_|^NO_AT_BRIDGE$' \
+       --expose=/run \
+       -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
+       coreutils zlib gtk+ webkitgtk xdg-utils \
+       -- ~/Applications/eclipse/eclipse-jee-2023-09/eclipse
+
+#+end_src
+
+When running as wayland app, dialog windows (e.g. the startup splash screen) aren't set to floating.
+
+**** Remaining issues while running Eclipse
+
+- "Can't connect to a11y bus: Could not connect: No such file or directory": Currently this is no issue for me, fortunately.
+- "libEGL warning: MESA-LOADER: failed to retrieve device information"
+- "(process:256): GLib-GIO-ERROR **: 14:22:45.702: Settings schema 'org.gnome.system.proxy' is not installed" (when opening Eclipse Help Contents)
+- An empty window with the message "WebKit encountered a problem" is shown when opening online help
+- When running as wayland app, dialog windows (e.g. the startup splash screen) aren't set to floating.
+- "Failed to load cursor theme Adwaita" is shown at startup.
+  
+*If you have any solution for these, please let me know.*
+
+*** DONE Astah
+
+- [[https://astah.net/products/astah-professional/][Astah]] 9.1.0 needs Java [1.8.0_372,1.9). Guix's Java 1.8 version is 1.8.0_292. You can tell Astah to relax the version check by adding the parameter ~-nojvchk~ to the command.
+- Without setting ~_JAVA_AWT_WM_NONREPARENTING=1~ Astah does not show any content in its window.
+
+The resulting shell is:
+
+#+BEGIN_SRC shell
+
+  export _JAVA_AWT_WM_NONREPARENTING=1
+
+  guix shell icedtea@3.19.0 \
+       -- /home/flake/Applications/astah_professional/astah -nojvchk
+#+END_SRC
+
+*** DONE neo4j
+
+[[https://neo4j.com/][Neo4J]] does not make any problems. This is how things should work. Just [[https://neo4j.com/deployment-center/#community][download]] the community edition of neo4j, extract it and run:
+
+#+BEGIN_SRC shell
+
+  guix shell openjdk@17.0.5 \
+       -- ~/Applications/neo4j/bin/neo4j-admin server start
+
+#+END_SRC
+

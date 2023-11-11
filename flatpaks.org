@@ -1,0 +1,24 @@
+* Spotify
+
+Spotify is available as proprietary, binary package only. Therefore it won't make it into GNU Guix, but maybe someone will package it for nonguix some day. Until then, it can be installed via flatpak. Installing and runnning Spotify as flatpak is straight forward as described on [[https://flathub.org/apps/com.spotify.Client][Flathub]]:
+
+#+BEGIN_SRC shell
+  flatpak install flathub com.spotify.Client
+  flatpak run com.spotify.Client
+#+END_SRC
+
+To run the Spotify from flatpak as wayland app (not via xwayland), add the following parameters to the command: ~--enable-features=WaylandWindowDecorations --ozone-platform=wayland~.
+
+You can define an alias in .aliases, to launch spotify as native wayland app:
+#+BEGIN_SRC shell
+  alias spotify="flatpak --user run com.spotify.Client --command=spotify --enable-features=WaylandWindowDecorations --ozone-platform=wayland %u"
+#+END_SRC
+
+Additionally, you should the parameters in the .desktop file ~~/.local/share/flatpak/exports/share/applications/com.spotify.Client.desktop~ that is installed by flatpak. The relevant line looks as follows:
+
+#+begin_src desktop
+  Exec=flatpak run --branch=stable --arch=x86_64 --command=spotify --file-forwarding com.spotify.Client --enable-features=WaylandWindowDecorations --ozone-platform=wayland @@u %U @@  
+#+end_src
+
+Unfortunately, no ~app_id~ is set, therefore it's difficult to create window rules in sway, for example.
+
