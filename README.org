@@ -140,7 +140,7 @@ It's probably generally a good idea to add wrapper scripts to your projects' sou
 
 [[https://www.jabref.org/][JabRef]] is also available as flatpak, but I preferred to create a guix shell for it. So I downloaded and extracted a recent version. This is the file I wanted to run:
 
-#+BEGIN_SRC shell
+#+BEGIN_SRC shell :exports both
   ls -l ~/Applications/JabRef-5.11/bin/JabRef
   file ~/Applications/JabRef-5.11/bin/JabRef
 #+END_SRC
@@ -151,7 +151,7 @@ It's probably generally a good idea to add wrapper scripts to your projects' sou
 
 But this does not work as expected:
 
-#+BEGIN_SRC shell :prologue "exec 2>&1" :epilogue ":" 
+#+BEGIN_SRC shell :prologue "exec 2>&1" :epilogue ":" :exports both
   guix shell openjdk@17.0.5 -- ~/Applications/JabRef-5.11/bin/JabRef
 #+END_SRC
 
