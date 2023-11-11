@@ -174,8 +174,7 @@ Running in a container that complies with the File Hierarchy System (FHS) solves
   guix shell \
        --container --emulate-fhs --network \
        --preserve='^DBUS_' --expose=/var/run/dbus \
-       --preserve='^XDG_' \
-       --preserve='WAYLAND_DISPLAY' --expose=/run/user \
+       --preserve='^XDG_|^WAYLAND_DISPLAY$' --expose=/run/user \
        --preserve='^DISPLAY$' --expose=/dev/dri --expose=/sys/dev --expose=/sys/devices \
        --share=$HOME \
        coreutils gtk+ openjdk@17.0.5 xdg-utils xdg-user-dirs ungoogled-chromium \
@@ -199,8 +198,8 @@ Eclipse is also available as flatpak, but I prefer to use a Guix Shell.
 - Eclipse complains about missing ~libz.so.1~, therefore, I added ~zlib~ to the shell container.
 - Eclipse complains about missing ~swt-pi3~. This is solved by adding package ~gtk+~.
 - Eclipse needs ~$DISPLAY~ for X11/XWayland or ~$XDG_~ and ~$WAYLAND_DISPLAY~ for Wayland.
-- Eclipse complains "Cannot spawn a message bus without a machine-id: Unable to load /gnu/store/...-glib-2.72.3/var/lib/dbus/machine-id or /etc/machine-id:". This is solved by preserving ~$DBUS_~ environment variables
-- Eclipse can't connect to accessibility bus (because I don't have ~/run/user/1000/at-spi/bus_0~). This is solved by setting ~NO_AT_BRIDGE=1~
+- Eclipse complains "Cannot spawn a message bus without a machine-id: Unable to load /gnu/store/...-glib-2.72.3/var/lib/dbus/machine-id or /etc/machine-id:". This is solved by preserving ~$DBUS_~ environment variables and exposing ~/var/run/dbus~.
+- In order to let Eclipse connect to accessibility bus, I expose ~/run/user~ to the container. Alternatively you could set ~NO_AT_BRIDGE=1~ to tell Eclipse to not try to access the accessibility bus.
 - Eclipse needs WebKit bindings as integrated web browser. This is solved by adding ~webkitgtk~. Still, Online Help isn't available, it results in a window with the message "WebKit encountered a problem".
 - During work with Eclipse, some auto completion feature did not work. Instead I got the message ".../.node/node-v18.17.1-linux-x64/bin/node: error while loading shared libraries: libstdc++.so.6: cannot open shared object file: No such file or directory".
   As of [2023-11-09 Thu] a workaround is necessary to add ~libstdc++~ to the shell: The output ~lib~ of ~gcc~ is not available anymore (due to an ongoing transition of package ~gcc~ to ~gcc-toolchain~). One can still add the relevant output via ~-e '(list (@@ (gnu packages commencement) gcc) "lib")'~. (According to podiki in IRC chat, this is a temporary workaround (https://logs.guix.gnu.org/guix/2023-11-09.log). Otherwise adding ~gcc-toolchain:lib~ to the packages could be sufficient.)
@@ -209,17 +208,15 @@ Eclipse is also available as flatpak, but I prefer to use a Guix Shell.
 
 #+begin_src shell
 
-  export NO_AT_BRIDGE=1
-  
-  guix shell \
-       --container --emulate-fhs --network \
-       --share=$HOME \
-       --preserve='^DISPLAY$' \
-       --preserve='^DBUS_|^NO_AT_BRIDGE$' \
-       --expose=/dev \
-       -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
-       coreutils zlib gtk+ webkitgtk \
-       -- ~/Applications/eclipse/eclipse-jee-2023-09/eclipse
+   guix shell \
+        --container --emulate-fhs --network \
+        --share=$HOME \
+        --preserve='^DISPLAY$' --expose=/dev \
+        --preserve='^DBUS_' --expose=/var/run/dbus \
+        --expose=/run/user \
+        -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
+        coreutils zlib gtk+ webkitgtk \
+        -- ~/Applications/eclipse/eclipse-jee-2023-09/eclipse
 
 #+end_src
 
@@ -229,14 +226,12 @@ It is assumed, that ~DBUS_SESSION_BUS_ADDRESS~, ~XDG_RUNTIME_DIR~ and ~WAYLAND_D
 
 #+begin_src shell
 
-  export NO_AT_BRIDGE=1
-
   guix shell \
        --container --emulate-fhs --network \
        --share=$HOME \
        --preserve='^WAYLAND_DISPLAY$|^XDG_RUNTIME_DIR$' \
-       --preserve='^DBUS_|^NO_AT_BRIDGE$' \
-       --expose=/run \
+       --preserve='^DBUS_' --expose=/var/run/dbus \
+       --expose=/run/user \
        -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
        coreutils zlib gtk+ webkitgtk xdg-utils \
        -- ~/Applications/eclipse/eclipse-jee-2023-09/eclipse
@@ -247,11 +242,9 @@ When running as wayland app, dialog windows (e.g. the startup splash screen) are
 
 **** Remaining issues while running Eclipse
 
-- "Can't connect to a11y bus: Could not connect: No such file or directory": Currently this is no issue for me, fortunately.
-- "libEGL warning: MESA-LOADER: failed to retrieve device information"
-- "(process:256): GLib-GIO-ERROR **: 14:22:45.702: Settings schema 'org.gnome.system.proxy' is not installed" (when opening Eclipse Help Contents)
 - An empty window with the message "WebKit encountered a problem" is shown when opening online help
 - When running as wayland app, dialog windows (e.g. the startup splash screen) aren't set to floating.
+- "(process:256): GLib-GIO-ERROR **: 14:22:45.702: Settings schema 'org.gnome.system.proxy' is not installed" (when opening Eclipse Help Contents)
 - "Failed to load cursor theme Adwaita" is shown at startup.
   
 *If you have any solution for these, please let me know.*
