@@ -1,6 +1,8 @@
 #+title: GUIX Shell examples
+:PROPERTIES:
 #+OPTIONS: toc:t
-
+#+STARTUP: show3levels
+:END:
 Running a [[https://guix.gnu.org/][GNU Guix]] system as main operating system generally works for me. However, I have the requirement to run some software that is not available in Guix. Although it's generally possible (but not the Guix-way) to create packages from proprietary software, where source code is unavailable, creating a Guix package is not trivial or not feasible in some cases.
 
 * Java on Guix
@@ -69,12 +71,12 @@ Java 1.7 is provided in the package ~icedtea~ version 2.6.13:
   : OpenJDK 64-Bit Server VM (build 24.171-b02, mixed mode)
 
 
-Unfortunately, in most cases it is not sufficient to just install a recent version of OpenJDK. Furthermore this does not allow for different versions to exist in parallel. A simple guix shell with the appropriate package added, does also not suffice, as the following examples demonstrate. Especially with desktop programs additional tweaks are required.
+Unfortunately, in most cases it is not sufficient to just install a recent version of OpenJDK. Furthermore this does not allow for different versions to exist in parallel. A simple ~guix shell~ with the appropriate package added, does also not suffice, as the following examples demonstrate. Especially with desktop programs additional tweaks are required.
 
 ** DONE Building Java Programs
 
 Maven version in GNU Guix is 3.8.6. (Some) Tested projects require Java 17. Guix's ~maven@3.8.6~ does not like (aka run with) Guix's ~openjdk@17.0.5~. Therefore, I downloaded a recent Maven version from Maven's homepage, extracted it and added the binary to my ~$PATH~. I added ~--preserve='^PATH$~ and the package ~openjdk@17.0.5:jdk~ to a container shell and was then able to use that downloaded Maven version inside the container. So far so good.
-I wasn't really happy with that, therefore I decided to add a [[https://maven.apache.org/wrapper/][Maven Wrapper]] to the project, I needed a recent Maven version for. I used the maven container shell created as described above, but you can do this even without having Maven installed at all. So I don't use my downloaded Maven version anymore.
+I was not really happy with that, therefore I decided to add a [[https://maven.apache.org/wrapper/][Maven Wrapper]] to the project, I needed a recent Maven version for. I used the maven container shell created as described above, but you can do this even without having Maven installed at all. So I don't use my downloaded Maven version anymore.
 It's probably generally a good idea to add wrapper scripts to your projects' sources like ~mvnw~ or ~gradlew~. These scripts fetch from the internet some defined version of Maven and Gradle respectively and you don't need to install these build systems locally in you operating system. That way the source defines, the build environment (e.g. the version of maven to use). However, this is not the Guix way, since you never know for sure the contents of the blobs, these wrapper download from the internet. On the other side, these build systems are designed to load the dependencies of the projects as binary blobs from internet like [[https://mvnrepository.com/]] anyways. So you never really know for sure, what you are downloading and running with the integration tests the build systems run.
 
 *** Building CARiSMA with Maven
@@ -92,7 +94,7 @@ It's probably generally a good idea to add wrapper scripts to your projects' sou
 
 #+end_src
 
-*** Building CAMUNDA BPM with Maven
+*** Building Camunda BPM with Maven
 
 - Tested with 7.20.0 from git [2023-11-10 Fri]
 - Camunda BPM 7.20.0 requires Java version 11 or 17 [https://docs.camunda.org/manual/7.20/introduction/supported-environments/#java-runtime]
@@ -120,7 +122,7 @@ It's probably generally a good idea to add wrapper scripts to your projects' sou
 - Clone the [[https://github.com/eclipse-edc/Connector][Eclipse Dataspace Connector]] : ~git clone git@github.com:eclipse-edc/Connector.git~
 - EDC needs Java 17+ (https://github.com/eclipse-edc/docs/blob/main/developer/handbook.md)
 - EDC contains a Gradle Wrapper Script, so no local Gradle installation is required.
-- EDC needs ~xargs~, which is shipped with package findutils
+- EDC needs ~xargs~, which is shipped with package ~findutils~
 - Gradle throws an error, if ~sed~ is not available
 
 #+begin_src shell
@@ -138,7 +140,7 @@ It's probably generally a good idea to add wrapper scripts to your projects' sou
 ** Running Java Programs
 *** TODO JabRef
 
-[[https://www.jabref.org/][JabRef]] is also available as flatpak, but I preferred to create a guix shell for it. So I downloaded and extracted a recent version. This is the file I wanted to run:
+[[https://www.jabref.org/][JabRef]] is also available as flatpak, but I preferred to create a Guix shell for it. So I downloaded and extracted a recent version. This is the file I wanted to run:
 
 #+BEGIN_SRC shell :exports both
   ls -l ~/Applications/JabRef-5.11/bin/JabRef
@@ -166,8 +168,7 @@ Running in a container that complies with the File Hierarchy System (FHS) solves
   #+END_SRC
   So I added ~xdg-user-dirs~ to the container and preserved ~XDG_~ environment variables.
 - To open links in an external program, JabRef uses ~xdg-open~. Therefore I added ~xdg-utils~.
-- I added ~ungoogled-chromium~ to allow JabRef to open internet URLs. Since I am on wayland, I configured my own chromium profile to use wayland. JabRef itself runs as X11 application in XWayland. That's why I had to add both environments (Wayland and X) to the container.
-
+- I added ~ungoogled-chromium~ to allow JabRef to open internet URLs. Since I am on Wayland, I configured my own chromium profile to use Wayland. JabRef itself runs as X11 application in XWayland. That's why I had to add both environments (Wayland and X) to the container.
 
 #+BEGIN_SRC shell
  
@@ -188,21 +189,21 @@ When I want to open a URL from within JabRef, a new chromium window is opened in
 
 *If you have any solution for these, please let me know.*
 
-
 *** TODO Eclipse
 
 Eclipse is also available as flatpak, but I prefer to use a Guix Shell.
 
 - Eclipse ships its own JDK. Therefore, a local JDK installation is not necessary for running Eclipse.
-- On a normal GNU Guix system that does not comply to File Hierarchy Standard (FHS), running the binary ~eclipse~ gives a "command not found". One way to solve this is to run a container shell with ~--emulate-fhs~ parameter.
+- On a normal GNU Guix system that does not comply to File Hierarchy Standard (FHS), running the binary ~eclipse~ gives a "command not found". One way to solve this, is to run a container shell with ~--emulate-fhs~ parameter.
 - Eclipse complains about missing ~libz.so.1~, therefore, I added ~zlib~ to the shell container.
 - Eclipse complains about missing ~swt-pi3~. This is solved by adding package ~gtk+~.
 - Eclipse needs ~$DISPLAY~ for X11/XWayland or ~$XDG_~ and ~$WAYLAND_DISPLAY~ for Wayland.
 - Eclipse complains "Cannot spawn a message bus without a machine-id: Unable to load /gnu/store/...-glib-2.72.3/var/lib/dbus/machine-id or /etc/machine-id:". This is solved by preserving ~$DBUS_~ environment variables and exposing ~/var/run/dbus~.
 - In order to let Eclipse connect to accessibility bus, I expose ~/run/user~ to the container. Alternatively you could set ~NO_AT_BRIDGE=1~ to tell Eclipse to not try to access the accessibility bus.
-- Eclipse needs WebKit bindings as integrated web browser. This is solved by adding ~webkitgtk~. Still, Online Help isn't available, it results in a window with the message "WebKit encountered a problem".
+- Eclipse needs WebKit bindings as integrated web browser. This is solved by adding ~webkitgtk~. Still, Online Help is not available, it results in a window with the message "WebKit encountered a problem".
 - During work with Eclipse, some auto completion feature did not work. Instead I got the message ".../.node/node-v18.17.1-linux-x64/bin/node: error while loading shared libraries: libstdc++.so.6: cannot open shared object file: No such file or directory".
-  As of [2023-11-09 Thu] a workaround is necessary to add ~libstdc++~ to the shell: The output ~lib~ of ~gcc~ is not available anymore (due to an ongoing transition of package ~gcc~ to ~gcc-toolchain~). One can still add the relevant output via ~-e '(list (@@ (gnu packages commencement) gcc) "lib")'~. (According to podiki in IRC chat, this is a temporary workaround (https://logs.guix.gnu.org/guix/2023-11-09.log). Otherwise adding ~gcc-toolchain:lib~ to the packages could be sufficient.)
+  As of [2023-11-09 Thu] a workaround is necessary to add ~libstdc++~ to the shell: The output ~lib~ of ~gcc~ is not available anymore (due to an ongoing transition of package ~gcc~ to ~gcc-toolchain~). One can still add the relevant output via ~-e '(list (@@ (gnu packages commencement) gcc) "lib")'~ .
+  (According to podiki in IRC chat, this is a temporary workaround (https://logs.guix.gnu.org/guix/2023-11-09.log). Otherwise adding ~gcc-toolchain:lib~ to the packages could be sufficient.)
 
 **** Eclipse in X11 / XWayland
 
@@ -220,7 +221,7 @@ Eclipse is also available as flatpak, but I prefer to use a Guix Shell.
 
 #+end_src
 
-**** Eclipse natively on Wayland
+**** Eclipse native on Wayland
 
 It is assumed, that ~DBUS_SESSION_BUS_ADDRESS~, ~XDG_RUNTIME_DIR~ and ~WAYLAND_DISPLAY~ are set correctly after launching your compositor.
 
@@ -231,19 +232,19 @@ It is assumed, that ~DBUS_SESSION_BUS_ADDRESS~, ~XDG_RUNTIME_DIR~ and ~WAYLAND_D
        --share=$HOME \
        --preserve='^WAYLAND_DISPLAY$|^XDG_RUNTIME_DIR$' \
        --preserve='^DBUS_' --expose=/var/run/dbus \
-       --expose=/run/user \
+       --expose=/run \
        -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
-       coreutils zlib gtk+ webkitgtk xdg-utils \
+       coreutils zlib gtk+ webkitgtk \
        -- ~/Applications/eclipse/eclipse-jee-2023-09/eclipse
 
 #+end_src
 
-When running as wayland app, dialog windows (e.g. the startup splash screen) aren't set to floating.
+When running as Wayland app, dialog windows (e.g. the startup splash screen) are not set to floating.
 
 **** Remaining issues while running Eclipse
 
 - An empty window with the message "WebKit encountered a problem" is shown when opening online help
-- When running as wayland app, dialog windows (e.g. the startup splash screen) aren't set to floating.
+- When running as Wayland app, dialog windows (e.g. the startup splash screen) are not set to floating.
 - "(process:256): GLib-GIO-ERROR **: 14:22:45.702: Settings schema 'org.gnome.system.proxy' is not installed" (when opening Eclipse Help Contents)
 - "Failed to load cursor theme Adwaita" is shown at startup.
   
