@@ -5,6 +5,8 @@
 :END:
 Running a [[https://guix.gnu.org/][GNU Guix]] system as main operating system generally works for me. However, I have the requirement to run some software that is not available in Guix. Although it's generally possible (but not the Guix-way) to create packages from proprietary software, where source code is unavailable, creating a Guix package is not trivial or not feasible in some cases.
 
+I use this file to describe and finally extract my frequently used Guix shell calls into separate script files in my ~~/.local/bin/~ directory (which is included in ~$PATH~), by using the ~org-babel-tangle-file~ function of Emacs's wonderful /[[https://orgmode.org/][org mode]]/.
+
 * Java on Guix
 :PROPERTIES:
 #+PROPERTY: header-args:shell :results output verbatim :exports both :tangle no :eval never-export
@@ -170,8 +172,8 @@ Running in a container that complies with the File Hierarchy System (FHS) solves
 - To open links in an external program, JabRef uses ~xdg-open~. Therefore I added ~xdg-utils~.
 - I added ~ungoogled-chromium~ to allow JabRef to open internet URLs. Since I am on Wayland, I configured my own chromium profile to use Wayland. JabRef itself runs as X11 application in XWayland. That's why I had to add both environments (Wayland and X) to the container.
 
-#+BEGIN_SRC shell
- 
+#+BEGIN_SRC shell :shebang #!/bin/sh :tangle guix-shell-jabref.sh
+
   guix shell \
        --container --emulate-fhs --network \
        --preserve='^DBUS_' --expose=/var/run/dbus \
@@ -207,7 +209,7 @@ Eclipse is also available as flatpak, but I prefer to use a Guix Shell.
 
 **** Eclipse in X11 / XWayland
 
-#+begin_src shell
+#+begin_src shell :shebang #!/bin/sh :tangle guix-shell-eclipse-jee-2023-09.sh
 
    guix shell \
         --container --emulate-fhs --network \
@@ -257,10 +259,9 @@ When running as Wayland app, dialog windows (e.g. the startup splash screen) are
 
 The resulting shell is:
 
-#+BEGIN_SRC shell
+#+BEGIN_SRC shell :shebang #!/bin/sh :tangle guix-shell-astah.sh
 
   export _JAVA_AWT_WM_NONREPARENTING=1
-
   guix shell icedtea@3.19.0 \
        -- /home/flake/Applications/astah_professional/astah -nojvchk
 #+END_SRC
@@ -269,10 +270,96 @@ The resulting shell is:
 
 [[https://neo4j.com/][Neo4J]] does not make any problems. This is how things should work. Just [[https://neo4j.com/deployment-center/#community][download]] the community edition of neo4j, extract it and run:
 
-#+BEGIN_SRC shell
+#+BEGIN_SRC shell :shebang #!/bin/sh :tangle guix-shell-neo4j.sh
 
   guix shell openjdk@17.0.5 \
        -- ~/Applications/neo4j/bin/neo4j-admin server start
 
 #+END_SRC
 
+* DONE TOR Browser
+
+- adopted from https://guix.gnu.org/en/blog/2023/the-filesystem-hierarchy-standard-comes-to-guix-containers/
+
+** on X11 / XWayland
+ #+BEGIN_SRC shell
+
+   cd ~/Applications/tor-browser
+   guix shell \
+       --container --emulate-fhs --network \
+       --share=$HOME \
+       --preserve='^DISPLAY$' --expose=/dev \
+       --preserve='^DBUS_' --expose=/var/run/dbus \
+       --expose=/run/user \
+       -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
+       coreutils zlib gtk+ webkitgtk alsa-lib bash  dbus-glib file  grep gtk+ libcxx pciutils sed
+   
+ #+END_SRC
+
+** on Wayland
+ #+BEGIN_SRC shell :tangle guix-shell-tor-browser.sh :shebang #!/bin/sh
+
+   cd ~/Applications/tor-browser
+   guix shell \
+       --container --emulate-fhs --network \
+       --share=$HOME \
+       --preserve='^WAYLAND_DISPLAY$|^XDG_RUNTIME_DIR$' --expose=$XDG_RUNTIME_DIR \
+       --preserve='^DBUS_' --expose=/var/run/dbus \
+       -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
+       alsa-lib bash coreutils dbus-glib file grep gtk+ libcxx pciutils sed \
+       -- ./start-tor-browser.desktop -v
+
+ #+END_SRC 
+* DONE Draw IO
+** on X11
+#+BEGIN_SRC shell :tangle guix-shell-drawio.sh :shebang #!/bin/sh
+  #!/bin/sh
+  guix shell --container --network --emulate-fhs \
+       --share=$HOME \
+       --preserve='^DISPLAY$' --expose=/dev/dri --expose=/sys/dev --expose=/sys/devices \
+       --preserve='^DBUS_' --expose=/var/run/dbus \
+       --development ungoogled-chromium \
+       -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
+       zlib coreutils \
+       -- ~/Applications/drawio-x86_64-22.0.3.AppImage --appimage-extract-and-run $@
+
+#+END_SRC
+
+** on Wayland
+
+#+BEGIN_SRC shell
+  cd ~/Applications/
+  guix shell --container --network --emulate-fhs \
+       --share=$HOME \
+       --preserve='^WAYLAND_DISPLAY$|^XDG_' --expose=$XDG_RUNTIME_DIR \
+       --preserve='^DBUS_' --expose=/var/run/dbus \
+       --development ungoogled-chromium \
+       -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
+       zlib coreutils \
+       -- ~/Applications/drawio-x86_64-22.0.3.AppImage --appimage-extract-and-run $@
+
+#+END_SRC
+
+* General hints on containers for desktop programs
+
+** X11 / XWayland / Wayland
+
+If you are on an X11 server or you intend to run a program in a container on Wayland that does not run natively on Wayland, and therefore needs to run on XWayland, you need to:
+
+#+begin_src shell
+  --preserve='^DISPLAY$' --expose=/dev/dri --expose=/sys/dev --expose=/sys/devices
+#+end_src
+
+If you intend to run a program in a container natively on Wayland you need to:
+
+#+begin_src shell
+  --preserve='^WAYLAND_DISPLAY$|^XDG_' --expose=$XDG_RUNTIME_DIR
+#+end_src
+
+** DBUS
+
+If you need access to running DBUS session(s), you need to:
+
+#+begin_src shell
+  --preserve='^DBUS_' --expose=/var/run/dbus
+#+end_src
