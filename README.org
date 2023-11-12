@@ -5,7 +5,7 @@
 :END:
 Running a [[https://guix.gnu.org/][GNU Guix]] system as main operating system generally works for me. However, I have the requirement to run some software that is not available in Guix. Although it's generally possible (but not the Guix-way) to create packages from proprietary software, where source code is unavailable, creating a Guix package is not trivial or not feasible in some cases.
 
-I use this file to describe and finally extract my frequently used Guix shell calls into separate script files in my ~~/.local/bin/~ directory (which is included in ~$PATH~), by using the ~org-babel-tangle-file~ function of Emacs's wonderful /[[https://orgmode.org/][org mode]]/.
+I use this file to describe and finally extract my frequently used Guix shell calls into separate script files to my ~$HOME/.local/bin/~ directory (which is part of my ~$PATH~), by using the ~org-babel-tangle-file~ function of Emacs's wonderful [[https://orgmode.org/][org mode]].
 
 * Java on Guix
 :PROPERTIES:
@@ -313,7 +313,6 @@ The resulting shell is:
 * DONE Draw IO
 ** on X11
 #+BEGIN_SRC shell :tangle guix-shell-drawio.sh :shebang #!/bin/sh
-  #!/bin/sh
   guix shell --container --network --emulate-fhs \
        --share=$HOME \
        --preserve='^DISPLAY$' --expose=/dev/dri --expose=/sys/dev --expose=/sys/devices \
@@ -328,7 +327,6 @@ The resulting shell is:
 ** on Wayland
 
 #+BEGIN_SRC shell
-  cd ~/Applications/
   guix shell --container --network --emulate-fhs \
        --share=$HOME \
        --preserve='^WAYLAND_DISPLAY$|^XDG_' --expose=$XDG_RUNTIME_DIR \
