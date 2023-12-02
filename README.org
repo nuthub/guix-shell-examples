@@ -75,6 +75,15 @@ Java 1.7 is provided in the package ~icedtea~ version 2.6.13:
 
 Unfortunately, in most cases it is not sufficient to just install a recent version of OpenJDK. Furthermore this does not allow for different versions to exist in parallel. A simple ~guix shell~ with the appropriate package added, does also not suffice, as the following examples demonstrate. Especially with desktop programs additional tweaks are required.
 
+However, a basic shell with OpenJDK 17 (JDK) is started with:
+
+#+begin_src shell :shebang #!/bin/sh :tangle guix-shell-java17.sh
+
+  export JAVA_HOME=$(guix build openjdk@17.0.5 | grep "\-jdk$")
+  guix shell openjdk@17.0.5:jdk
+
+#+end_src
+
 ** DONE Building Java Programs
 
 Maven version in GNU Guix is 3.8.6. (Some) Tested projects require Java 17. Guix's ~maven@3.8.6~ does not like (aka run with) Guix's ~openjdk@17.0.5~. Therefore, I downloaded a recent Maven version from Maven's homepage, extracted it and added the binary to my ~$PATH~. I added ~--preserve='^PATH$~ and the package ~openjdk@17.0.5:jdk~ to a container shell and was then able to use that downloaded Maven version inside the container. So far so good.
@@ -88,7 +97,7 @@ It's probably generally a good idea to add wrapper scripts to your projects' sou
 - The Maven wrapper script ~mvnw~ complains about ~JAVA_HOME~, if not set.
 - Build succeeds with the following shell:
 
-#+begin_src shell
+#+begin_src shell :shebang #!/bin/sh :tangle guix-shell-java17-mvnw.sh
 
   export JAVA_HOME=$(guix build openjdk@17.0.5 | grep "\-jdk$")
   cd ~/git/carisma-tool
@@ -311,6 +320,23 @@ The resulting shell is:
 
  #+END_SRC 
 * DONE Draw IO
+
+I downloaded the AppImage from draw.io's [[https://github.com/jgraph/drawio-desktop/releases/][github release page]] and extracted it, renamed the directory and created a link with, e.g.:
+
+#+BEGIN_SRC shell
+
+    guix shell --container --network --emulate-fhs \
+           --share=$HOME \
+           zlib coreutils \
+           -- ./drawio-x86_64-22.1.2.AppImage --appimage-extract
+    mv squashfs-root ~/Applications/drawio-x86_64-22.1.2
+    cd ~/Applications
+    ln -s drawio-x86_64-22.1.2 drawio
+
+#+END_SRC
+
+You could also run a shell with ~...AppImage --appimage-extract-and-run~, but this would extract the AppImage each time you invoke the drawio shell.
+
 ** on X11
 #+BEGIN_SRC shell :tangle guix-shell-drawio.sh :shebang #!/bin/sh
   guix shell --container --network --emulate-fhs \
@@ -320,13 +346,14 @@ The resulting shell is:
        --development ungoogled-chromium \
        -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
        zlib coreutils \
-       -- ~/Applications/drawio-x86_64-22.0.3.AppImage --appimage-extract-and-run $@
+       -- ~/Applications/drawio/AppRun $@
 
 #+END_SRC
 
 ** on Wayland
 
 #+BEGIN_SRC shell
+  
   guix shell --container --network --emulate-fhs \
        --share=$HOME \
        --preserve='^WAYLAND_DISPLAY$|^XDG_' --expose=$XDG_RUNTIME_DIR \
@@ -334,7 +361,7 @@ The resulting shell is:
        --development ungoogled-chromium \
        -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
        zlib coreutils \
-       -- ~/Applications/drawio-x86_64-22.0.3.AppImage --appimage-extract-and-run $@
+       -- ~/Applications/drawio/AppRun $@
 
 #+END_SRC
 
