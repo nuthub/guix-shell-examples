@@ -1,8 +1,7 @@
-#+title: GUIX Shell examples
-:PROPERTIES:
-#+OPTIONS: toc:t
+#+TITLE: GUIX Shell examples
+#+OPTIONS: toc:2
 #+STARTUP: show3levels
-:END:
+
 Running a [[https://guix.gnu.org/][GNU Guix]] system as main operating system generally works for me. However, I have the requirement to run some software that is not available in Guix. Although it's generally possible (but not the Guix-way) to create packages from proprietary software, where source code is unavailable, creating a Guix package is not trivial or not feasible in some cases.
 
 I use this file to describe and finally extract my frequently used Guix shell calls into separate script files to my ~$HOME/.local/bin/~ directory (which is part of my ~$PATH~), by using the ~org-babel-tangle-file~ function of Emacs's wonderful [[https://orgmode.org/][org mode]].
@@ -218,7 +217,7 @@ Eclipse is also available as flatpak, but I prefer to use a Guix Shell.
 
 **** Eclipse in X11 / XWayland
 
-#+begin_src shell :shebang #!/bin/sh :tangle guix-shell-eclipse-jee-2023-09.sh
+#+begin_src shell :shebang #!/bin/sh :tangle guix-shell-eclipse-modeling-2023-12.sh
 
    guix shell \
         --container --emulate-fhs --network \
@@ -228,7 +227,7 @@ Eclipse is also available as flatpak, but I prefer to use a Guix Shell.
         --expose=/run/user \
         -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
         coreutils zlib gtk+ webkitgtk \
-        -- ~/Applications/eclipse/eclipse-jee-2023-09/eclipse
+        -- ~/Applications/eclipse/eclipse-modeling-2023-12/eclipse
 
 #+end_src
 
