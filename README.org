@@ -245,7 +245,7 @@ It is assumed, that ~DBUS_SESSION_BUS_ADDRESS~, ~XDG_RUNTIME_DIR~ and ~WAYLAND_D
        --expose=/run \
        -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
        coreutils zlib gtk+ webkitgtk \
-       -- ~/Applications/eclipse/eclipse-jee-2023-09/eclipse
+       -- ~/Applications/eclipse/eclipse-modeling-2023-12/eclipse
 
 #+end_src
 
@@ -281,7 +281,7 @@ The resulting shell is:
 #+BEGIN_SRC shell :shebang #!/bin/sh :tangle guix-shell-neo4j.sh
 
   guix shell openjdk@17.0.5 \
-       -- ~/Applications/neo4j/bin/neo4j-admin server start
+       -- ~/Applications/neo4j/bin/neo4j-admin $@
 
 #+END_SRC
 
