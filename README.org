@@ -244,19 +244,21 @@ When running as Wayland app, dialog windows (e.g. the startup splash screen) are
 
 *** DONE Astah (obsolete)
 
-- This script is obsolete, since I created a package definition and made it available in my own [[https://github.com/nuthub/nutguix][Guix channel]].
-- [[https://astah.net/products/astah-professional/][Astah]] 9.1.0 needs Java [1.8.0_372,1.9). Guix's Java 1.8 version is 1.8.0_292. You can tell Astah to relax the version check by adding the parameter ~-nojvchk~ to the command.
+**** Astah 10.x
+- [[https://astah.net/products/astah-professional/][Astah]] 10.0.0 finally runs with modern JDKs, e.g. OpenJDK 21
+- I created a package definition and it's made available in my personal [[https://github.com/nuthub/nutguix][Guix channel]]. There was some additional effort required to apply a faculty license to the software.
+- It seems that Astah 10.0.0 does not need ~_JAVA_AWT_WM_NONREPARENTING=1~ anymore.
+  
+**** Astah 9.x
+- [[https://astah.net/products/astah-professional/][Astah]] 9.1.0 (and also 9.2.0) needed Java [1.8.0_372,1.9). Guix's Java 1.8 version is 1.8.0_292. You can tell Astah to relax the version check by adding the parameter ~-nojvchk~ to the command.
 - Without setting ~_JAVA_AWT_WM_NONREPARENTING=1~ Astah does not show any content in its window.
 
-The resulting shell is:
-
+This shell I used for version 9 of astah is obsolete. Since 10.0.0, I just can run astah-pro, as long as a recent OpenJDK is installed.
 #+begin_src shell :tangle no
   export _JAVA_AWT_WM_NONREPARENTING=1
   guix shell icedtea@3.19.0 \
        -- /home/flake/Applications/astah_professional/astah -nojvchk
 #+end_src
-
-
 
 *** DONE neo4j
 
