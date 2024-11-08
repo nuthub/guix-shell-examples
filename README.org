@@ -369,3 +369,8 @@ If you need access to running DBUS session(s), you need to:
 #+begin_src shell
   --preserve='^DBUS_' --expose=/var/run/dbus
 #+end_src
+* Additional Information
+- https://guix.gnu.org/manual/en/html_node/Invoking-guix-shell.html
+- https://guix.gnu.org/en/blog/2021/from-guix-environment-to-guix-shell/
+- https://guix.gnu.org/cookbook/en/html_node/Guix-Containers.html
+- https://www.futurile.net/2023/04/29/guix-shell-virtual-environments-containers/
