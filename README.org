@@ -112,6 +112,7 @@ It's probably generally a good idea to add wrapper scripts to your projects' sou
 - Camunda BPM 7.20.0 requires Java version 11 or 17 [https://docs.camunda.org/manual/7.20/introduction/supported-environments/#java-runtime]
 - Camunda needs ~libstdc++~, which is made available to a container shell via ~-e '(list (@@ (gnu packages commencement) gcc) "lib")'~.
   - According to podiki in IRC chat, this is a temporary workaround (https://logs.guix.gnu.org/guix/2023-11-09.log) to add the previous ~lib~ output of ~gcc~ package, which is in transition to a new package ~gcc-toolchain~.
+  - The corresponding issue is https://issues.guix.gnu.org/63393
 - Maven wrapper likes to use ~which~, therefore it's added to the container. Additionally the Maven Wrapper warns about ~JAVA_HOME~ not being set, therefore just set it like in the following example.
 - Camunda needs ~bash~ executable to build, therefore it's added to the container.
 - The maven wrapper script does run without FHS, but Camunda BPM tries to start a node.js server which seems to not work without FHS.
@@ -250,6 +251,29 @@ When running as Wayland app, dialog windows (e.g. the startup splash screen) are
   
 *If you have any solution for these, please let me know.*
 
+*** DONE neo4j
+
+[[https://neo4j.com/][Neo4J Community Edition]] does not make any problems. This is how things should work. Just [[https://neo4j.com/deployment-center/#community][download]] the community edition of neo4j, extract it and run. If a recent OpenJDK is installed, you don't need a shell. Otherwise:
+
+#+begin_src shell :shebang #!/bin/sh :tangle no
+  guix shell openjdk@21.0.2 \
+       -- ~/Applications/neo4j/bin/neo4j-admin $@
+#+end_src
+
+*** TODO neo4j desktop
+I didn't manage to get neo4j desktop to run in guix. This is my latest shell, I tried with:
+
+#+begin_src shell
+  guix shell --container --network --emulate-fhs \
+       --preserve='^DBUS_' --expose=/var/run/dbus \
+       --preserve='^DISPLAY$' --expose=/dev/dri --expose=/sys/dev --expose=/sys/devices \
+       -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
+       --share=$HOME --share=/tmp \
+       zlib coreutils glib nss atkmm cups libdrm gtk+ alsa-lib mit-krb5 libsecret
+#+end_src
+
+I get an error 
+
 *** DONE Astah (obsolete)
 
 **** Astah 10.x
@@ -268,24 +292,6 @@ This shell I used for version 9 of astah is obsolete. Since 10.0.0, I just can r
        -- /home/flake/Applications/astah_professional/astah -nojvchk
 #+end_src
 
-*** DONE neo4j
-
-[[https://neo4j.com/][Neo4J]] does not make any problems. This is how things should work. Just [[https://neo4j.com/deployment-center/#community][download]] the community edition of neo4j, extract it and run:
-
-#+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-neo4j.sh
-  guix shell openjdk@17.0.5 \
-       -- ~/Applications/neo4j/bin/neo4j-admin $@
-#+end_src
-*** neo4j desktop
-
-#+begin_src shell
-  guix shell --container --network --emulate-fhs \
-       --preserve='^DBUS_' --expose=/var/run/dbus \
-       --preserve='^DISPLAY$' --expose=/dev/dri --expose=/sys/dev --expose=/sys/devices \
-       -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
-       --share=$HOME \
-       zlib coreutils glib nss atkmm cups libdrm gtk+@3.24.37 alsa-lib mit-krb5 libsecret
-#+end_src
 * DONE TOR Browser
 
 - adopted from https://guix.gnu.org/en/blog/2023/the-filesystem-hierarchy-standard-comes-to-guix-containers/
