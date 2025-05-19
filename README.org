@@ -200,45 +200,47 @@ When I want to open a URL from within JabRef, a new chromium window is opened in
 *** TODO Eclipse
 Eclipse is also available as flatpak, but I prefer to use a Guix Shell.
 
-- Eclipse ships its own JDK. Therefore, a local JDK installation is not necessary for running Eclipse.
+- Eclipse ships its own JDK. Therefore, a local JDK installation is not necessary for running Eclipse. However, current Elipse (2025-03) ships with a jdk 21 and I need OpenJDK 21 for some projects. Therefore, I add OpenJDK 21 to the container shell.
 - On a normal GNU Guix system that does not comply to File Hierarchy Standard (FHS), running the binary ~eclipse~ gives a "command not found". One way to solve this, is to run a container shell with ~--emulate-fhs~ parameter.
 - Eclipse complains about missing ~libz.so.1~, therefore, I added ~zlib~ to the shell container.
 - Eclipse complains about missing ~swt-pi3~. This is solved by adding package ~gtk+~.
 - Eclipse needs ~$DISPLAY~ for X11/XWayland or ~$XDG_~ and ~$WAYLAND_DISPLAY~ for Wayland.
 - Eclipse complains "Cannot spawn a message bus without a machine-id: Unable to load /gnu/store/...-glib-2.72.3/var/lib/dbus/machine-id or /etc/machine-id:". This is solved by preserving ~$DBUS_~ environment variables and exposing ~/var/run/dbus~.
 - In order to let Eclipse connect to accessibility bus, I expose ~/run/user~ to the container. Alternatively you could set ~NO_AT_BRIDGE=1~ to tell Eclipse to not try to access the accessibility bus.
-- Eclipse needs WebKit bindings as integrated web browser. This is solved by adding ~webkitgtk~. Still, Online Help is not available, it results in a window with the message "WebKit encountered a problem".
+- Eclipse needs WebKit bindings as integrated web browser and for previewing markdown files (and possibly other things). This is solved by adding ~webkitgtk~. Still, Online Help is not available, it results in a window with the message "WebKit encountered a problem".
 - During work with Eclipse, some auto completion feature did not work. Instead I got the message ".../.node/node-v18.17.1-linux-x64/bin/node: error while loading shared libraries: libstdc++.so.6: cannot open shared object file: No such file or directory".
   As of [2023-11-09 Thu] a workaround is necessary to add ~libstdc++~ to the shell: The output ~lib~ of ~gcc~ is not available anymore (due to an ongoing transition of package ~gcc~ to ~gcc-toolchain~). One can still add the relevant output via ~-e '(list (@@ (gnu packages commencement) gcc) "lib")'~ .
-  (According to podiki in IRC chat, this is a temporary workaround (https://logs.guix.gnu.org/guix/2023-11-09.log). Otherwise adding ~gcc-toolchain:lib~ to the packages could be sufficient.)
+  (According to podiki in IRC chat, this is a temporary workaround (https://logs.guix.gnu.org/guix/2023-11-09.log). Otherwise adding ~gcc-toolchain:lib~ to the packages could be sufficient. See also https://issues.guix.gnu.org/63393)
 
 **** Eclipse in X11 / XWayland
 
-#+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-eclipse-modeling-2024-03-R-x11.sh
-   guix shell \
-        --container --emulate-fhs --network \
-        --share=$HOME \
-        --preserve='^DISPLAY$' --expose=/dev \
-        --preserve='^DBUS_' --expose=/var/run/dbus \
-        --expose=/run/user \
-        -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
-        coreutils zlib gtk+ webkitgtk \
-        -- ~/Applications/eclipse/eclipse-modeling-2024-03-R/eclipse
+#+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-eclipse-modeling-2025-03-R-x11.sh
+  guix shell \
+       --container --emulate-fhs --network \
+       --share=$HOME --share=/tmp \
+       --preserve='^DISPLAY$' --expose=/dev \
+       --preserve='^DBUS_' --expose=/var/run/dbus \
+       --preserve='^JAVA_HOME$' \
+       --expose=/run/user \
+       -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
+       coreutils zlib gtk+ webkitgtk openjdk@21:jdk webkitgtk librewolf hicolor-icon-theme xcursor-themes \
+       -- ~/Applications/eclipse/eclipse-modeling-2025-03-R/eclipse
 #+end_src
 
 **** Eclipse native on Wayland
 It is assumed, that ~DBUS_SESSION_BUS_ADDRESS~, ~XDG_RUNTIME_DIR~ and ~WAYLAND_DISPLAY~ are set correctly after launching your compositor.
 
-#+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-eclipse-modeling-2024-03-R-wayland.sh
+#+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-eclipse-modeling-2025-03-R-wayland.sh
   guix shell \
        --container --emulate-fhs --network \
-       --share=$HOME \
+       --share=$HOME --share=/tmp \
        --preserve='^WAYLAND_DISPLAY$|^XDG_RUNTIME_DIR$' \
        --preserve='^DBUS_' --expose=/var/run/dbus \
+       --preserve='^JAVA_HOME$' \
        --expose=/run \
        -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
-       coreutils zlib gtk+ webkitgtk \
-       -- ~/Applications/eclipse/eclipse-modeling-2023-03-R/eclipse
+       coreutils zlib gtk+ webkitgtk openjdk@21:jdk webkitgtk librewolf hicolor-icon-theme xcursor-themes \
+       -- ~/Applications/eclipse/eclipse-modeling-2025-03-R/eclipse
 #+end_src
 
 When running as Wayland app, dialog windows (e.g. the startup splash screen) are not set to floating.
