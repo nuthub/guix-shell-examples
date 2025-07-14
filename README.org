@@ -200,7 +200,7 @@ When I want to open a URL from within JabRef, a new chromium window is opened in
 *** TODO Eclipse
 Eclipse is also available as flatpak, but I prefer to use a Guix Shell.
 
-- Eclipse ships its own JDK. Therefore, a local JDK installation is not necessary for running Eclipse. However, current Elipse (2025-03) ships with a jdk 21 and I need OpenJDK 21 for some projects. Therefore, I add OpenJDK 21 to the container shell.
+- Eclipse ships its own JDK. Therefore, a local JDK installation is not necessary for running Eclipse.
 - On a normal GNU Guix system that does not comply to File Hierarchy Standard (FHS), running the binary ~eclipse~ gives a "command not found". One way to solve this, is to run a container shell with ~--emulate-fhs~ parameter.
 - Eclipse complains about missing ~libz.so.1~, therefore, I added ~zlib~ to the shell container.
 - Eclipse complains about missing ~swt-pi3~. This is solved by adding package ~gtk+~.
@@ -214,7 +214,7 @@ Eclipse is also available as flatpak, but I prefer to use a Guix Shell.
 
 **** Eclipse in X11 / XWayland
 
-#+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-eclipse-modeling-2025-03-R-x11.sh
+#+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-eclipse-modeling-2025-06-R-x11.sh
   guix shell \
        --container --emulate-fhs --network \
        --share=$HOME --share=/tmp \
@@ -223,14 +223,14 @@ Eclipse is also available as flatpak, but I prefer to use a Guix Shell.
        --preserve='^JAVA_HOME$' \
        --expose=/run/user \
        -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
-       coreutils zlib gtk+ webkitgtk openjdk@21:jdk webkitgtk librewolf hicolor-icon-theme xcursor-themes \
-       -- ~/Applications/eclipse/eclipse-modeling-2025-03-R/eclipse
+       coreutils zlib gtk+ webkitgtk openjdk@21:jdk webkitgtk-for-gtk3 librewolf hicolor-icon-theme xcursor-themes \
+       -- ~/Applications/eclipse/eclipse-modeling-2025-06-R/eclipse
 #+end_src
 
 **** Eclipse native on Wayland
 It is assumed, that ~DBUS_SESSION_BUS_ADDRESS~, ~XDG_RUNTIME_DIR~ and ~WAYLAND_DISPLAY~ are set correctly after launching your compositor.
 
-#+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-eclipse-modeling-2025-03-R-wayland.sh
+#+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-eclipse-modeling-2025-06-R-wayland.sh
   guix shell \
        --container --emulate-fhs --network \
        --share=$HOME --share=/tmp \
@@ -239,8 +239,8 @@ It is assumed, that ~DBUS_SESSION_BUS_ADDRESS~, ~XDG_RUNTIME_DIR~ and ~WAYLAND_D
        --preserve='^JAVA_HOME$' \
        --expose=/run \
        -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
-       coreutils zlib gtk+ webkitgtk openjdk@21:jdk webkitgtk librewolf hicolor-icon-theme xcursor-themes \
-       -- ~/Applications/eclipse/eclipse-modeling-2025-03-R/eclipse
+       coreutils zlib gtk+ webkitgtk openjdk@21:jdk webkitgtk-for-gtk3 librewolf hicolor-icon-theme xcursor-themes \
+       -- ~/Applications/eclipse/eclipse-modeling-2025-06-R/eclipse
 #+end_src
 
 When running as Wayland app, dialog windows (e.g. the startup splash screen) are not set to floating.
