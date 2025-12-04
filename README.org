@@ -95,6 +95,8 @@ Maven version in GNU Guix is 3.8.6. (Some) Tested projects require Java 17. Guix
 I was not really happy with that, therefore I decided to add a [[https://maven.apache.org/wrapper/][Maven Wrapper]] to the project, I needed a recent Maven version for. I used the maven container shell created as described above, but you can do this even without having Maven installed at all. So I don't use my downloaded Maven version anymore.
 It's probably generally a good idea to add wrapper scripts to your projects' sources like ~mvnw~ or ~gradlew~. These scripts fetch from the internet some defined version of Maven and Gradle respectively and you don't need to install these build systems locally in you operating system. That way the source defines, the build environment (e.g. the version of maven to use). However, this is not the Guix way, since you never know for sure the contents of the blobs, these wrapper download from the internet. On the other side, these build systems are designed to load the dependencies of the projects as binary blobs from internet like [[https://mvnrepository.com/]] anyways. So you never really know for sure, what you are downloading and running with the integration tests the build systems run.
 
+The following examples are more or less my personal notes for very specific needs to build some Java programs.
+
 *** Building CARiSMA with Maven
 - CARiSMA (https://github.com/CARiSMA-Tool/carisma-tool) requires Java 17+ [2023-11-10 Fri]
 - CARiSMA (now) includes a Maven wrapper script, therefore local installation of a specific Maven version became unnecessary.
@@ -151,22 +153,22 @@ It's probably generally a good idea to add wrapper scripts to your projects' sou
 [[https://www.jabref.org/][JabRef]] is also available as flatpak, but I preferred to create a Guix shell for it. So I downloaded and extracted a recent version. This is the file I wanted to run:
 
 #+begin_src shell :exports both
-  ls -l ~/Applications/JabRef-5.11/bin/JabRef
-  file ~/Applications/JabRef-5.11/bin/JabRef
+  ls -l ~/opt/JabRef-5.11/bin/JabRef
+  file ~/opt/JabRef-5.11/bin/JabRef
 #+end_src
 
 #+RESULTS:
-: -rwxr-xr-x 1 flake users 18568 Oct 22 01:05 /home/flake/Applications/JabRef-5.11/bin/JabRef
-: /home/flake/Applications/JabRef-5.11/bin/JabRef: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.18, BuildID[sha1]=6d790541a31635bd38177b4f4d70bcdf422eb827, not stripped
+: -rwxr-xr-x 1 flake users 18568 Oct 22 01:05 /home/flake/opt/JabRef-5.11/bin/JabRef
+: /home/flake/opt/JabRef-5.11/bin/JabRef: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.18, BuildID[sha1]=6d790541a31635bd38177b4f4d70bcdf422eb827, not stripped
 
 But this does not work as expected:
 
 #+begin_src shell :prologue "exec 2>&1" :epilogue ":" :exports both
-  guix shell openjdk@17.0.5 -- ~/Applications/JabRef-5.11/bin/JabRef
+  guix shell openjdk@17.0.5 -- ~/opt/JabRef-5.11/bin/JabRef
 #+end_src
 
 #+RESULTS:
-: guix shell: error: /home/flake/Applications/JabRef-5.11/bin/JabRef: command not found
+: guix shell: error: /home/flake/opt/JabRef-5.11/bin/JabRef: command not found
 
 Running in a container that complies with the File Hierarchy System (FHS) solves the issue for me. However the container needs additional information and programs to smoothly run JabRef.
 
@@ -187,7 +189,7 @@ Running in a container that complies with the File Hierarchy System (FHS) solves
        --preserve='^DISPLAY$' --expose=/dev/dri --expose=/sys/dev --expose=/sys/devices \
        --share=$HOME \
        coreutils gtk+ openjdk@17.0.5 xdg-utils xdg-user-dirs ungoogled-chromium \
-       -- ~/Applications/JabRef-5.11/bin/JabRef
+       -- ~/opt/JabRef-5.11/bin/JabRef
 
 #+end_src
 
@@ -208,39 +210,42 @@ Eclipse is also available as flatpak, but I prefer to use a Guix Shell.
 - Eclipse complains "Cannot spawn a message bus without a machine-id: Unable to load /gnu/store/...-glib-2.72.3/var/lib/dbus/machine-id or /etc/machine-id:". This is solved by preserving ~$DBUS_~ environment variables and exposing ~/var/run/dbus~.
 - In order to let Eclipse connect to accessibility bus, I expose ~/run/user~ to the container. Alternatively you could set ~NO_AT_BRIDGE=1~ to tell Eclipse to not try to access the accessibility bus.
 - Eclipse needs WebKit bindings as integrated web browser and for previewing markdown files (and possibly other things). This is solved by adding ~webkitgtk~. Still, Online Help is not available, it results in a window with the message "WebKit encountered a problem".
-- During work with Eclipse, some auto completion feature did not work. Instead I got the message ".../.node/node-v18.17.1-linux-x64/bin/node: error while loading shared libraries: libstdc++.so.6: cannot open shared object file: No such file or directory".
-  As of [2023-11-09 Thu] a workaround is necessary to add ~libstdc++~ to the shell: The output ~lib~ of ~gcc~ is not available anymore (due to an ongoing transition of package ~gcc~ to ~gcc-toolchain~). One can still add the relevant output via ~-e '(list (@@ (gnu packages commencement) gcc) "lib")'~ .
+- [obsolete?] During work with Eclipse, some auto completion feature did not work. Instead I got the message ".../.node/node-v18.17.1-linux-x64/bin/node: error while loading shared libraries: libstdc++.so.6: cannot open shared object file: No such file or directory".
+    As of [2023-11-09 Thu] a workaround is necessary to add ~libstdc++~ to the shell: The output ~lib~ of ~gcc~ is not available anymore (due to an ongoing transition of package ~gcc~ to ~gcc-toolchain~). One can still add the relevant output via ~-e '(list (@@ (gnu packages commencement) gcc) "lib")'~ .
   (According to podiki in IRC chat, this is a temporary workaround (https://logs.guix.gnu.org/guix/2023-11-09.log). Otherwise adding ~gcc-toolchain:lib~ to the packages could be sufficient. See also https://issues.guix.gnu.org/63393)
 
 **** Eclipse in X11 / XWayland
 
-#+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-eclipse-modeling-2025-06-R-x11.sh
+#+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-eclipse-x11.sh
   guix shell \
        --container --emulate-fhs --network \
        --share=$HOME --share=/tmp \
        --preserve='^DISPLAY$' --expose=/dev \
        --preserve='^DBUS_' --expose=/var/run/dbus \
-       --preserve='^JAVA_HOME$' \
        --expose=/run/user \
-       -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
-       coreutils zlib gtk+ webkitgtk openjdk@21:jdk webkitgtk-for-gtk3 librewolf hicolor-icon-theme xcursor-themes \
-       -- ~/Applications/eclipse/eclipse-modeling-2025-06-R/eclipse
+       coreutils zlib gtk+ webkitgtk openjdk@23:jdk webkitgtk-for-gtk3 librewolf hicolor-icon-theme xcursor-themes $@
+#+end_src
+To automatically launch eclipse amend the script by the command to run:
+#+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-eclipse-modeling-2025-09-R-x11.sh :noweb yes
+  ~/.local/bin/guix-shell-eclipse-x11.sh -- ~/opt/eclipse/eclipse-modeling-2025-09-R/eclipse
 #+end_src
 
 **** Eclipse native on Wayland
 It is assumed, that ~DBUS_SESSION_BUS_ADDRESS~, ~XDG_RUNTIME_DIR~ and ~WAYLAND_DISPLAY~ are set correctly after launching your compositor.
 
-#+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-eclipse-modeling-2025-06-R-wayland.sh
+#+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-eclipse-wayland.sh
   guix shell \
        --container --emulate-fhs --network \
        --share=$HOME --share=/tmp \
        --preserve='^WAYLAND_DISPLAY$|^XDG_RUNTIME_DIR$' \
        --preserve='^DBUS_' --expose=/var/run/dbus \
-       --preserve='^JAVA_HOME$' \
        --expose=/run \
-       -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
-       coreutils zlib gtk+ webkitgtk openjdk@21:jdk webkitgtk-for-gtk3 librewolf hicolor-icon-theme xcursor-themes \
-       -- ~/Applications/eclipse/eclipse-modeling-2025-06-R/eclipse
+       coreutils zlib gtk+ webkitgtk openjdk@23:jdk webkitgtk-for-gtk3 librewolf hicolor-icon-theme xcursor-themes $@
+#+end_src
+
+To automatically launch eclipse amend the script by the command to run:
+#+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-eclipse-modeling-2025-09-R-wayland.sh :noweb yes
+  ~/.local/bin/guix-shell-eclipse-wayland.sh -- ~/opt/eclipse/eclipse-modeling-2025-09-R/eclipse
 #+end_src
 
 When running as Wayland app, dialog windows (e.g. the startup splash screen) are not set to floating.
@@ -259,7 +264,7 @@ When running as Wayland app, dialog windows (e.g. the startup splash screen) are
 
 #+begin_src shell :shebang #!/bin/sh :tangle no
   guix shell openjdk@21.0.2 \
-       -- ~/Applications/neo4j/bin/neo4j-admin $@
+       -- ~/opt/neo4j/bin/neo4j-admin $@
 #+end_src
 
 *** TODO neo4j desktop
@@ -291,16 +296,16 @@ This shell I used for version 9 of astah is obsolete. Since 10.0.0, I just can r
 #+begin_src shell :tangle no
   export _JAVA_AWT_WM_NONREPARENTING=1
   guix shell icedtea@3.19.0 \
-       -- /home/flake/Applications/astah_professional/astah -nojvchk
+       -- /home/flake/opt/astah_professional/astah -nojvchk
 #+end_src
 
-* DONE TOR Browser
+*** DONE TOR Browser
 
 - adopted from https://guix.gnu.org/en/blog/2023/the-filesystem-hierarchy-standard-comes-to-guix-containers/
 
-** on X11 / XWayland
+**** on X11 / XWayland
  #+begin_src shell
-   cd ~/Applications/tor-browser
+   cd ~/opt/tor-browser
    guix shell \
        --container --emulate-fhs --network \
        --share=$HOME \
@@ -311,9 +316,9 @@ This shell I used for version 9 of astah is obsolete. Since 10.0.0, I just can r
        coreutils zlib gtk+ webkitgtk alsa-lib bash  dbus-glib file  grep gtk+ libcxx pciutils sed
  #+end_src
 
-** on Wayland
+**** on Wayland
  #+begin_src shell :tangle ~/.local/bin/guix-shell-tor-browser.sh :shebang #!/bin/sh
-   cd ~/Applications/tor-browser
+   cd ~/opt/tor-browser
    guix shell \
        --container --emulate-fhs --network \
        --share=$HOME \
@@ -324,7 +329,7 @@ This shell I used for version 9 of astah is obsolete. Since 10.0.0, I just can r
        -- ./start-tor-browser.desktop -v
  #+end_src
  
-* DONE Draw IO
+*** DONE Draw IO
 I downloaded the AppImage from draw.io's [[https://github.com/jgraph/drawio-desktop/releases/][github release page]] and extracted it, renamed the directory and created a link with, e.g.:
 
 #+begin_src shell
@@ -332,14 +337,14 @@ I downloaded the AppImage from draw.io's [[https://github.com/jgraph/drawio-desk
            --share=$HOME \
            zlib coreutils \
            -- ./drawio-x86_64-22.1.2.AppImage --appimage-extract
-    mv squashfs-root ~/Applications/drawio-x86_64-22.1.2
-    cd ~/Applications
+    mv squashfs-root ~/opt/drawio-x86_64-22.1.2
+    cd ~/opt
     ln -s drawio-x86_64-22.1.2 drawio
 #+end_src
 
 You could also run a shell with ~...AppImage --appimage-extract-and-run~, but this would extract the AppImage each time you invoke the drawio shell.
 
-** on X11
+**** on X11
 #+begin_src shell :tangle ~/.local/bin/guix-shell-drawio.sh :shebang #!/bin/sh
   guix shell --container --network --emulate-fhs \
        --share=$HOME \
@@ -348,10 +353,10 @@ You could also run a shell with ~...AppImage --appimage-extract-and-run~, but th
        --development ungoogled-chromium \
        -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
        zlib coreutils \
-       -- ~/Applications/drawio/AppRun $@
+       -- ~/opt/drawio/AppRun $@
 #+end_src
 
-** on Wayland
+**** on Wayland
 
 #+begin_src shell  
   guix shell --container --network --emulate-fhs \
@@ -361,8 +366,9 @@ You could also run a shell with ~...AppImage --appimage-extract-and-run~, but th
        --development ungoogled-chromium \
        -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
        zlib coreutils \
-       -- ~/Applications/drawio/AppRun $@
+       -- ~/opt/drawio/AppRun $@
 #+end_src
+
 
 * General hints on containers for desktop programs
 
@@ -385,6 +391,7 @@ If you need access to running DBUS session(s), you need to:
 #+begin_src shell
   --preserve='^DBUS_' --expose=/var/run/dbus
 #+end_src
+
 * Additional Information
 - https://guix.gnu.org/manual/en/html_node/Invoking-guix-shell.html
 - https://guix.gnu.org/en/blog/2021/from-guix-environment-to-guix-shell/
