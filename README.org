@@ -252,18 +252,20 @@ I get an error
 
 *** DONE Astah
 
-**** Astah 10.x
+**** Astah >=10
 - [[https://astah.net/products/astah-professional/][Astah]] 10.0.0 finally runs with modern JDKs, e.g. OpenJDK 21
+- [[https://astah.net/products/astah-professional/][Astah]] 11 runs with OpenJDK >= 25.0.1
 - I created a package definition and it's made available in my personal [[https://github.com/nuthub/nutguix][Guix channel]]. There was some additional effort required to apply a faculty license to the software.
 - It seems that Astah 10.0.0 does not need ~_JAVA_AWT_WM_NONREPARENTING=1~ anymore.
 
 However, I need a shell, since Astah does not run on modern Java versions, e.g. it does not run ob OpenJDK 25.
 #+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-astah.sh
-  export JAVA_HOME=$(guix build openjdk@21.0.2 | grep "\-jdk$")
-  guix shell openjdk@21.0.2 -- astah-pro -nojvchk
+  java_version=25
+  export JAVA_HOME=$(guix build openjdk@$java_version | grep "\-jdk$")
+  guix shell openjdk@$java_version -- astah-pro -nojvchk $@
 #+end_src
 
-**** Astah 9.x
+**** Astah 9
 - [[https://astah.net/products/astah-professional/][Astah]] 9.1.0 (and also 9.2.0) needed Java [1.8.0_372,1.9). Guix's Java 1.8 version is 1.8.0_292. You can tell Astah to relax the version check by adding the parameter ~-nojvchk~ to the command.
 - Without setting ~_JAVA_AWT_WM_NONREPARENTING=1~ Astah does not show any content in its window.
 
