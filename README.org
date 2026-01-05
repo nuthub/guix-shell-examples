@@ -229,6 +229,7 @@ When running as Wayland app, dialog windows (e.g. the startup splash screen) are
 
 *** DONE neo4j
 
+**** neo4j Community Edition
 [[https://neo4j.com/][Neo4J Community Edition]] does not make any problems. This is how things should work. Just [[https://neo4j.com/deployment-center/#community][download]] the community edition of neo4j, extract it and run. If a recent OpenJDK is installed, you don't need a shell. Otherwise:
 
 #+begin_src shell :shebang #!/bin/sh :tangle no
@@ -236,7 +237,7 @@ When running as Wayland app, dialog windows (e.g. the startup splash screen) are
        -- ~/opt/neo4j/bin/neo4j-admin $@
 #+end_src
 
-*** DONE neo4j desktop
+**** neo4j Desktop
 
 [[https://neo4j.com/download/neo4j-desktop][Download]] and extract the AppImage, move it somewhere, e.g. ~~/opt~:
 #+begin_src shell
