@@ -252,7 +252,6 @@ neo4j requires X11 and multiple libraries. Version 2.1.1 can be run in a FHS con
        --preserve='^DBUS_' --expose=/var/run/dbus \
        --preserve='^DISPLAY$' --expose=/dev/dri --expose=/sys/dev --expose=/sys/devices \
        --share=$HOME --share=/tmp \
-       --preserve=GTK_THEME \
        libgudev alsa-lib zlib coreutils cups glib gtkmm@3.24.9 gcc-toolchain at-spi2-core nss \
   -- ~/opt/neo4j-desktop-2.1.1/neo4j-desktop
 #+end_src
