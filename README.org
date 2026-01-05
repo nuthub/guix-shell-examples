@@ -236,19 +236,25 @@ When running as Wayland app, dialog windows (e.g. the startup splash screen) are
        -- ~/opt/neo4j/bin/neo4j-admin $@
 #+end_src
 
-*** TODO neo4j desktop
-I didn't manage to get neo4j desktop to run in guix. This is my latest shell, I tried with:
+*** DONE neo4j desktop
 
+[[https://neo4j.com/download/neo4j-desktop][Download]] and extract the AppImage, move it somewhere, e.g. ~~/opt~:
 #+begin_src shell
+  chmod +x ./neo4j-desktop-2.1.1-x86_64.AppImage
+  guix shell --container --emulate-fhs zlib -- ./neo4j-desktop-2.1.1-x86_64.AppImage --appimage-extract
+  mv squashfs-root ~/opt/neo4j-desktop-2.1.1
+#+end_src
+
+neo4j requires X11 and multiple libraries. Version 2.1.1 can be run in a FHS container as follows:
+#+begin_src shell :shebang #!/bin/sh :tangle ~/.local/bin/guix-shell-neo4j-desktop.sh
   guix shell --container --network --emulate-fhs \
        --preserve='^DBUS_' --expose=/var/run/dbus \
        --preserve='^DISPLAY$' --expose=/dev/dri --expose=/sys/dev --expose=/sys/devices \
-       -e '(list (@@ (gnu packages commencement) gcc) "lib")' \
        --share=$HOME --share=/tmp \
-       zlib coreutils glib nss atkmm cups libdrm gtk+ alsa-lib mit-krb5 libsecret
+       --preserve=GTK_THEME \
+       libgudev alsa-lib zlib coreutils cups glib gtkmm@3.24.9 gcc-toolchain at-spi2-core nss \
+  -- ~/opt/neo4j-desktop-2.1.1/neo4j-desktop
 #+end_src
-
-I get an error 
 
 *** DONE Astah
 
